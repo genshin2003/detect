@@ -1,0 +1,16 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\src",
+    "\\src\\utils",
+    "\\src\\views",
+    "\\src\\views\\imgPredictBatch",
+    "\\src\\views\\login",
+    "\\src\\views\\personal",
+    "\\src\\views\\userManage",
+    "\\src\\views\\videoPredict",
+    "\\src\\views\\videoRecord"
+  ],
+  "SelectedNode": "\\src\\views\\personal\\index.vue",
+  "PreviewInSolutionExplorer": false
+}

@@ -1,0 +1,157 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\24429\\Desktop\\DeepseekCropDiseasesDetection-2\\DeepseekCropDiseasesDetection-2\\CropDiseasesDetection_vue\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\24429\\Desktop\\DeepseekCropDiseasesDetection-2\\DeepseekCropDiseasesDetection-2\\CropDiseasesDetection_vue\\src\\views\\personal\\index.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\views\\personal\\index.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\24429\\Desktop\\DeepseekCropDiseasesDetection-2\\DeepseekCropDiseasesDetection-2\\CropDiseasesDetection_vue\\src\\views\\imgRecord\\index.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\views\\imgRecord\\index.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\24429\\Desktop\\DeepseekCropDiseasesDetection-2\\DeepseekCropDiseasesDetection-2\\CropDiseasesDetection_vue\\src\\views\\imgPredictBatch\\index.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\views\\imgPredictBatch\\index.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\24429\\Desktop\\DeepseekCropDiseasesDetection-2\\DeepseekCropDiseasesDetection-2\\CropDiseasesDetection_vue\\vite.config.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:vite.config.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\24429\\Desktop\\DeepseekCropDiseasesDetection-2\\DeepseekCropDiseasesDetection-2\\CropDiseasesDetection_vue\\src\\views\\imgPredict\\index.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\views\\imgPredict\\index.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\24429\\Desktop\\DeepseekCropDiseasesDetection-2\\DeepseekCropDiseasesDetection-2\\CropDiseasesDetection_vue\\src\\main.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\main.ts||{0F2454B1-A556-402D-A7D0-1FDE7F99DEE0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\24429\\Desktop\\DeepseekCropDiseasesDetection-2\\DeepseekCropDiseasesDetection-2\\CropDiseasesDetection_vue\\src\\views\\userManage\\dialog.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\views\\userManage\\dialog.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\24429\\Desktop\\DeepseekCropDiseasesDetection-2\\DeepseekCropDiseasesDetection-2\\CropDiseasesDetection_vue\\src\\views\\userManage\\index.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:src\\views\\userManage\\index.vue||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 7,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{3ae79031-e1bc-11d0-8f78-00a0c9110057}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{1c64b9c2-e352-428e-a56d-0ace190b99a6}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "index.vue",
+              "DocumentMoniker": "C:\\Users\\24429\\Desktop\\DeepseekCropDiseasesDetection-2\\DeepseekCropDiseasesDetection-2\\CropDiseasesDetection_vue\\src\\views\\imgRecord\\index.vue",
+              "RelativeDocumentMoniker": "src\\views\\imgRecord\\index.vue",
+              "ToolTip": "C:\\Users\\24429\\Desktop\\DeepseekCropDiseasesDetection-2\\DeepseekCropDiseasesDetection-2\\CropDiseasesDetection_vue\\src\\views\\imgRecord\\index.vue",
+              "RelativeToolTip": "src\\views\\imgRecord\\index.vue",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003491|",
+              "WhenOpened": "2026-04-22T15:43:59.317Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "vite.config.ts",
+              "DocumentMoniker": "C:\\Users\\24429\\Desktop\\DeepseekCropDiseasesDetection-2\\DeepseekCropDiseasesDetection-2\\CropDiseasesDetection_vue\\vite.config.ts",
+              "RelativeDocumentMoniker": "vite.config.ts",
+              "ToolTip": "C:\\Users\\24429\\Desktop\\DeepseekCropDiseasesDetection-2\\DeepseekCropDiseasesDetection-2\\CropDiseasesDetection_vue\\vite.config.ts",
+              "RelativeToolTip": "vite.config.ts",
+              "ViewState": "AgIAADAAAAAAAAAAAAAAAAoAAAAdAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2026-04-22T08:59:29.995Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "index.vue",
+              "DocumentMoniker": "C:\\Users\\24429\\Desktop\\DeepseekCropDiseasesDetection-2\\DeepseekCropDiseasesDetection-2\\CropDiseasesDetection_vue\\src\\views\\imgPredict\\index.vue",
+              "RelativeDocumentMoniker": "src\\views\\imgPredict\\index.vue",
+              "ToolTip": "C:\\Users\\24429\\Desktop\\DeepseekCropDiseasesDetection-2\\DeepseekCropDiseasesDetection-2\\CropDiseasesDetection_vue\\src\\views\\imgPredict\\index.vue",
+              "RelativeToolTip": "src\\views\\imgPredict\\index.vue",
+              "ViewState": "AgIAABgAAAAAAAAAAAAAACMAAAAPAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003491|",
+              "WhenOpened": "2026-04-22T06:04:57.396Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "index.vue",
+              "DocumentMoniker": "C:\\Users\\24429\\Desktop\\DeepseekCropDiseasesDetection-2\\DeepseekCropDiseasesDetection-2\\CropDiseasesDetection_vue\\src\\views\\imgPredictBatch\\index.vue",
+              "RelativeDocumentMoniker": "src\\views\\imgPredictBatch\\index.vue",
+              "ToolTip": "C:\\Users\\24429\\Desktop\\DeepseekCropDiseasesDetection-2\\DeepseekCropDiseasesDetection-2\\CropDiseasesDetection_vue\\src\\views\\imgPredictBatch\\index.vue",
+              "RelativeToolTip": "src\\views\\imgPredictBatch\\index.vue",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003491|",
+              "WhenOpened": "2026-04-22T05:22:47.714Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "main.ts",
+              "DocumentMoniker": "C:\\Users\\24429\\Desktop\\DeepseekCropDiseasesDetection-2\\DeepseekCropDiseasesDetection-2\\CropDiseasesDetection_vue\\src\\main.ts",
+              "RelativeDocumentMoniker": "src\\main.ts",
+              "ToolTip": "C:\\Users\\24429\\Desktop\\DeepseekCropDiseasesDetection-2\\DeepseekCropDiseasesDetection-2\\CropDiseasesDetection_vue\\src\\main.ts",
+              "RelativeToolTip": "src\\main.ts",
+              "ViewState": "AgIAAAAAAAAAAAAAAADwvwAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003213|",
+              "WhenOpened": "2026-04-22T08:59:27.28Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "index.vue",
+              "DocumentMoniker": "C:\\Users\\24429\\Desktop\\DeepseekCropDiseasesDetection-2\\DeepseekCropDiseasesDetection-2\\CropDiseasesDetection_vue\\src\\views\\personal\\index.vue",
+              "RelativeDocumentMoniker": "src\\views\\personal\\index.vue",
+              "ToolTip": "C:\\Users\\24429\\Desktop\\DeepseekCropDiseasesDetection-2\\DeepseekCropDiseasesDetection-2\\CropDiseasesDetection_vue\\src\\views\\personal\\index.vue",
+              "RelativeToolTip": "src\\views\\personal\\index.vue",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAHgAAAATAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003491|",
+              "WhenOpened": "2026-04-22T02:34:07.597Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "index.vue",
+              "DocumentMoniker": "C:\\Users\\24429\\Desktop\\DeepseekCropDiseasesDetection-2\\DeepseekCropDiseasesDetection-2\\CropDiseasesDetection_vue\\src\\views\\userManage\\index.vue",
+              "RelativeDocumentMoniker": "src\\views\\userManage\\index.vue",
+              "ToolTip": "C:\\Users\\24429\\Desktop\\DeepseekCropDiseasesDetection-2\\DeepseekCropDiseasesDetection-2\\CropDiseasesDetection_vue\\src\\views\\userManage\\index.vue",
+              "RelativeToolTip": "src\\views\\userManage\\index.vue",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003491|",
+              "WhenOpened": "2026-04-22T01:27:04.054Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "dialog.vue",
+              "DocumentMoniker": "C:\\Users\\24429\\Desktop\\DeepseekCropDiseasesDetection-2\\DeepseekCropDiseasesDetection-2\\CropDiseasesDetection_vue\\src\\views\\userManage\\dialog.vue",
+              "RelativeDocumentMoniker": "src\\views\\userManage\\dialog.vue",
+              "ToolTip": "C:\\Users\\24429\\Desktop\\DeepseekCropDiseasesDetection-2\\DeepseekCropDiseasesDetection-2\\CropDiseasesDetection_vue\\src\\views\\userManage\\dialog.vue",
+              "RelativeToolTip": "src\\views\\userManage\\dialog.vue",
+              "ViewState": "AgIAAIQAAAAAAAAAAAAYwKAAAAAIAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003491|",
+              "WhenOpened": "2026-04-22T01:26:54.881Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
