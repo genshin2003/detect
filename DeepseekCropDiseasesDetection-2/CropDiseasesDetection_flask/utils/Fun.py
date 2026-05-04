@@ -12,14 +12,17 @@ class Fun:
         """初始化类"""
         pass
 
-    def save_data(self, data: str, url: str) -> None:
+    def save_data(self, data: str, url: str, token: str = None) -> None:
         """将数据以 JSON 格式上传到服务器
 
         Args:
             data: 要上传的数据（通常为 JSON 字符串）
             url: 目标服务器的 URL
+            token: JWT Token
         """
         headers = {'Content-Type': 'application/json; charset=utf-8'}
+        if token:
+            headers['Authorization'] = token
         try:
             if isinstance(data, str):
                 data = data.encode('utf-8')
@@ -157,18 +160,24 @@ class Fun:
             return False
 
     def cleanup_files(self, file_paths: List[str]) -> None:
-        """删除指定的文件列表
+        """删除指定的文件列表（增加路径标准化处理）
 
         Args:
             file_paths: 要删除的文件路径列表
         """
         for path in file_paths:
             try:
-                if os.path.exists(path):
-                    os.remove(path)
-                    print(f"已删除文件: {path}")
+                # 标准化路径，处理 ./ 等相对路径问题
+                abs_path = os.path.abspath(path)
+                if os.path.exists(abs_path):
+                    if os.path.isfile(abs_path):
+                        os.remove(abs_path)
+                        print(f"已删除文件: {abs_path}")
+                    elif os.path.isdir(abs_path):
+                        shutil.rmtree(abs_path)
+                        print(f"已删除目录: {abs_path}")
             except OSError as e:
-                print(f"删除文件 {path} 失败: {e}")
+                print(f"删除 {path} 失败: {e}")
 
     def cleanup_resources(self, cap: cv2.VideoCapture, video_writer: Optional[cv2.VideoWriter]) -> None:
         """释放视频捕获和写入资源

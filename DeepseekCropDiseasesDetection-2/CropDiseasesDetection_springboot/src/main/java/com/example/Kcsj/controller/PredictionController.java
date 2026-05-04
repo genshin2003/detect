@@ -11,6 +11,8 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
@@ -18,7 +20,7 @@ import javax.annotation.Resource;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.multipart.MultipartFile;
-
+import javax.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
@@ -104,7 +106,7 @@ public class PredictionController {
     }
 
     @PostMapping("/predict")
-    public Result<?> predict(@RequestBody PredictRequest request) {
+    public Result<?> predict(@RequestBody PredictRequest request, HttpServletRequest httpServletRequest) {
 
         log.info("当前在/predict");
         if (request == null || request.getInputImg() == null || request.getInputImg().isEmpty()) {
@@ -119,9 +121,13 @@ public class PredictionController {
         }
 
         try {
-            // 创建请求体
+            // 创建请求体并透传 Token
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
+            String token = httpServletRequest.getHeader("Authorization");
+            if (token != null) {
+                headers.set("Authorization", token);
+            }
             HttpEntity<PredictRequest> requestEntity = new HttpEntity<>(request, headers);
 
             // 调用 Flask API
@@ -153,11 +159,24 @@ public class PredictionController {
     }
 
     @GetMapping("/file_names")
-    public Result<?> getFileNames() {
+    public Result<?> getFileNames(HttpServletRequest httpServletRequest) {
         try {
-            // 调用 Flask API
-            String response = restTemplate.getForObject("http://127.0.0.1:5000/file_names", String.class);
-            return Result.success(response);
+            // 创建请求头并透传 Token
+            HttpHeaders headers = new HttpHeaders();
+            String token = httpServletRequest.getHeader("Authorization");
+            if (token != null) {
+                headers.set("Authorization", token);
+            }
+            HttpEntity<Void> requestEntity = new HttpEntity<>(headers);
+
+            // 使用 exchange 发送 GET 请求并带上 Header
+            ResponseEntity<String> responseEntity = restTemplate.exchange(
+                    "http://127.0.0.1:5000/file_names",
+                    HttpMethod.GET,
+                    requestEntity,
+                    String.class
+            );
+            return Result.success(responseEntity.getBody());
         } catch (Exception e) {
             return Result.error("-1", "Error: " + e.getMessage());
         }
@@ -169,7 +188,8 @@ public class PredictionController {
             @RequestParam("weight") String weight,
             @RequestParam("conf") String conf,
             @RequestParam("images") MultipartFile[] images,
-            @RequestParam("ai") String ai) {
+            @RequestParam("ai") String ai,
+            HttpServletRequest httpServletRequest) {
 
         long startTime = System.currentTimeMillis();
         log.info("开始处理批量识别转发：用户={}, 权重={}, 图片数={}", username, weight, images.length);
@@ -188,6 +208,11 @@ public class PredictionController {
             // 2. 转发给 Flask（使用 ByteArrayResource）
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+            // 透传 Token
+            String token = httpServletRequest.getHeader("Authorization");
+            if (token != null) {
+                headers.set("Authorization", token);
+            }
             MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
             body.add("username", username);
             body.add("weight", weight);

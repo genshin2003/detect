@@ -92,8 +92,9 @@
 			<div class="carousel">
 				<div class="section-title"><i></i><span>AI建议</span></div>
 			</div>
-			<div style="width: 100%;margin-bottom: 20px; padding: 0 300px;">
-				<div v-if="state.predictionResult.suggestion" style="width:100%;padding: 20px 100px; border-radius: 10px;min-height: 50px;border: 1px solid #C8E6C9">
+			<div style="width: 100%;margin-bottom: 20px;">
+				<div v-if="state.predictionResult.suggestion"
+					style="width:100%;padding: 20px; border-radius: 10px;min-height: 50px;border: 1px solid #C8E6C9">
 					<div v-html="state.predictionResult.suggestion" class="markdown-body"></div>
 				</div>
 			</div>

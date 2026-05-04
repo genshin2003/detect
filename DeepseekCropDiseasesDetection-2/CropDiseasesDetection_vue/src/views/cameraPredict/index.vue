@@ -43,6 +43,7 @@ import { storeToRefs } from 'pinia';
 import type { UploadInstance, UploadProps } from 'element-plus';
 import { SocketService } from '/@/utils/socket';
 import { formatDate } from '/@/utils/formatTime';
+import { Session } from '/@/utils/storage';
 
 const stores = useUserInfo();
 const conf = ref(50);
@@ -110,7 +111,10 @@ const start = () => {
 	state.form.username = userInfos.value.userName;
 	state.form.startTime = formatDate(new Date(), 'YYYY-mm-dd HH:MM:SS');
 	console.log(state.form);
-	const queryParams = new URLSearchParams(state.form).toString();
+	const queryParams = new URLSearchParams({
+		...state.form,
+		token: Session.get('token')
+	}).toString();
 	state.cameraisShow = true
 	state.video_path = `http://127.0.0.1:5000/predictCamera?${queryParams}`;
 };

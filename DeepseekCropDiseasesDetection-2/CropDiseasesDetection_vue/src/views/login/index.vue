@@ -129,8 +129,8 @@ const currentTime = computed(() => {
 	return formatAxis(new Date());
 });
 
-const onSignIn = async () => {
-	Session.set('token', Math.random().toString(36).substr(0));
+const onSignIn = async (token: string) => {
+	Session.set('token', token);
 	Cookies.set('userName', ruleForm.username);
 	if (!themeConfig.value.isRequestRoutes) {
 		const isNoPower = await initFrontEndControlRoutes();
@@ -175,7 +175,7 @@ const submitForm = (formEl: FormInstance | undefined) => {
 			request.post('/api/user/login', ruleForm).then((res) => {
 				if (res.code == 0) {
 					Cookies.set('role', res.data.role);
-					onSignIn();
+					onSignIn(res.data.token);
 				} else {
 					ElMessage({
 						type: 'error',

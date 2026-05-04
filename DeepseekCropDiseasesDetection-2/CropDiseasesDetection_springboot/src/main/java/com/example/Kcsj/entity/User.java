@@ -30,6 +30,9 @@ public class User {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss", timezone = "GMT+8")
     private Date time;
 
+    @com.baomidou.mybatisplus.annotation.TableField(exist = false)
+    private String token;
+
     public Integer getId() {
         return id;
     }
@@ -100,6 +103,14 @@ public class User {
 
     public void setAvatar(String avatar) {
         this.avatar = avatar;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
     }
 
     public Date getTime() {

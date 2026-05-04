@@ -8,11 +8,12 @@ import json
 import time
 import os
 import cv2
-from flask import Flask, Response, request, send_file
+import jwt
+from functools import wraps
+from flask import Flask, Response, request, send_file, jsonify
 from flask_socketio import SocketIO, emit
 from ultralytics import YOLO
 from utils.Fun import Fun
-from utils import predictImg,predictBatch
 from utils.chat_langchain import ChatAPI
 
 # Flask 应用设置
@@ -21,6 +22,7 @@ class VideoProcessingApp:
         """初始化 Flask 应用并设置路由"""
         self.app = Flask(__name__)
         self.socketio = SocketIO(self.app, cors_allowed_origins="*")  # 初始化 SocketIO
+        self.secret_key = "crop_diseases_detection_secret_key_2026"
         self.host = host
         self.port = port
         self.fun = Fun()
@@ -58,14 +60,34 @@ class VideoProcessingApp:
 
     def setup_routes(self):
         """设置所有路由"""
-        self.app.add_url_rule('/file_names', 'file_names', self.file_names, methods=['GET'])
-        self.app.add_url_rule('/predictImgBatch', 'predictImgBatch', self.predictImgBatch, methods=['POST'])
-        self.app.add_url_rule('/predictImg', 'predictImg', self.predictImg, methods=['POST'])
-        self.app.add_url_rule('/predictVideo', 'predictVideo', self.predictVideo)
-        self.app.add_url_rule('/predictCamera', 'predictCamera', self.predictCamera)
-        self.app.add_url_rule('/stopCamera', 'stopCamera', self.stopCamera, methods=['GET'])
-        self.app.add_url_rule('/getVideo', 'getVideo', self.getVideo, methods=['GET'])
-        self.app.add_url_rule('/get_image', 'get_image', self.get_image, methods=['GET'])
+        def token_required(f):
+            @wraps(f)
+            def decorated(*args, **kwargs):
+                token = request.headers.get('Authorization') or request.args.get('token')
+                if not token:
+                    return jsonify({'message': 'Token is missing!', 'code': 401}), 401
+                
+                # 去除可能的引号或空格
+                token = token.strip().strip('"').strip("'")
+                
+                try:
+                    jwt.decode(token, self.secret_key, algorithms=["HS256"])
+                except jwt.ExpiredSignatureError:
+                    return jsonify({'message': 'Token has expired!', 'code': 401}), 401
+                except jwt.InvalidTokenError as e:
+                    print(f"Token validation failed: {str(e)}") # 打印错误日志方便调试
+                    return jsonify({'message': 'Token is invalid!', 'code': 401}), 401
+                return f(*args, **kwargs)
+            return decorated
+
+        self.app.add_url_rule('/file_names', 'file_names', token_required(self.file_names), methods=['GET'])
+        self.app.add_url_rule('/predictImgBatch', 'predictImgBatch', token_required(self.predictImgBatch), methods=['POST'])
+        self.app.add_url_rule('/predictImg', 'predictImg', token_required(self.predictImg), methods=['POST'])
+        self.app.add_url_rule('/predictVideo', 'predictVideo', token_required(self.predictVideo))
+        self.app.add_url_rule('/predictCamera', 'predictCamera', token_required(self.predictCamera))
+        self.app.add_url_rule('/stopCamera', 'stopCamera', token_required(self.stopCamera), methods=['GET'])
+        self.app.add_url_rule('/getVideo', 'getVideo', token_required(self.getVideo), methods=['GET'])
+        self.app.add_url_rule('/get_image', 'get_image', token_required(self.get_image), methods=['GET'])
         # 添加 WebSocket 事件
         @self.socketio.on('connect')
         def handle_connect():
@@ -98,13 +120,16 @@ class VideoProcessingApp:
         return self.models[weight]
 
     def predictImgBatch(self):
+        """批量图片预测接口"""
         files = request.files.getlist('images')
         file_names = [file.filename for file in files]
         weight = request.form.get('weight')
         conf = float(request.form.get('conf', 0.5))
         ai = request.form.get('ai', '不使用AI')
+        token = request.headers.get('Authorization') or request.args.get('token')
 
         model = self.get_model(weight)
+        model.model.names = self.CHINESE_LABELS # 注入中文标签
 
         imgs = []
         for file in files:
@@ -119,68 +144,51 @@ class VideoProcessingApp:
         total_time = end_time - start_time
         avg_time = total_time / len(results) if len(results) > 0 else 0
 
-        # 提取所有检测结果
-        all_labels = []
-        all_confidences = []
-        for r in results:
+        output = []
+        for i, r in enumerate(results):
             labels = []
             confidences = []
             if r.boxes is not None:
-                for cls, c in zip(r.boxes.cls, r.boxes.conf):
-                    labels.append(self.CHINESE_LABELS[int(cls)])
-                    confidences.append(f"{c * 100:.2f}%")
-            all_labels.append(labels)
-            all_confidences.append(confidences)
-
-        # 并发处理 AI 建议
-        ai_type = ai if ai in ['DeepSeek', 'Qwen'] else None
-        suggestions = ['未选择AI，无AI建议！'] * len(results)
-        if ai_type:
-            tasks = {i: labels for i, labels in enumerate(all_labels) if labels}
-            if tasks:
-                from concurrent.futures import ThreadPoolExecutor, as_completed
-                with ThreadPoolExecutor(max_workers=3) as executor:
-                    future_to_idx = {}
-                    for idx, labels in tasks.items():
-                        list_input = self.fun.process_list(labels)
-                        future = executor.submit(
-                            self.chat.generate_crop_suggestion,
-                            list_input, ai_type, 15
-                        )
-                        future_to_idx[future] = idx
-                    for future in as_completed(future_to_idx):
-                        idx = future_to_idx[future]
-                        try:
-                            suggestions[idx] = future.result()
-                        except Exception as e:
-                            suggestions[idx] = f"AI 请求失败：{e}"
-
-        # 组装输出
-        output = []
-        for i, r in enumerate(results):
-            labels = all_labels[i]
-            confidences = all_confidences[i]
-            suggestion = suggestions[i]
-            if not labels:
-                suggestion = '识别失败，无法生成建议。'
-
-            save_name = f"batch_{i}.jpg"
+                labels = [self.CHINESE_LABELS[int(cls)] for cls in r.boxes.cls]
+                confidences = [f"{c * 100:.2f}%" for c in r.boxes.conf]
+            
+            save_name = f"batch_{uuid.uuid4().hex}.jpg"
             save_path = f"./runs/{save_name}"
-            cv2.imwrite(save_path, r.plot())
-
+            r.save(filename=save_path) # 使用原生保存
+            
+            uploadedUrl = self.fun.upload(save_path)
             img_bytes = cv2.imencode('.jpg', r.plot())[1].tobytes()
             img_base64 = base64.b64encode(img_bytes).decode('utf-8')
 
-            output.append({
+            # AI 建议逻辑 (保持简单同步处理，避免过度重构)
+            suggestion = '未选择AI，无AI建议！'
+            if ai in ['DeepSeek', 'Qwen'] and labels:
+                list_input = self.fun.process_list(labels)
+                suggestion = self.chat.generate_crop_suggestion(list_input, ai)
+            elif not labels:
+                suggestion = '识别失败，无法生成建议。'
+
+            item = {
                 "label": labels,
                 "confidence": confidences,
                 "allTime": f"{avg_time:.3f}秒",
                 "startTime": start_time_str,
                 "inputImg": file_names[i],
+                "outImg": uploadedUrl,
                 "ai": ai,
                 "suggestion": suggestion,
-                "outImgBase64": img_base64
-            })
+                "outImgBase64": img_base64,
+                "username": request.form.get('username'),
+                "weight": weight,
+                "conf": conf
+            }
+            output.append(item)
+            
+            # 批量识别的结果也入库
+            self.fun.save_data(json.dumps(item), 'http://localhost:9999/imgRecords', token=token)
+            
+            # 清理
+            self.fun.cleanup_files([save_path])
 
         return {"code": 0, "data": output}
     def file_names(self):
@@ -198,79 +206,83 @@ class VideoProcessingApp:
             "inputImg": data['inputImg'], "ai": data['ai']
         })
 
-        predict = predictImg.ImagePredictor(weights_path=f'./weights/{self.data["weight"]}',
-                                            img_path=self.data["inputImg"], save_path='./runs/result.jpg',
-                                            conf=float(self.data["conf"]))
-        # 执行预测
-        results = predict.predict()
-        uploadedUrl = self.fun.upload('./runs/result.jpg')
-
+        # 统一使用 get_model 缓存机制
+        model = self.get_model(self.data["weight"])
+        start_time = time.time()
+        
+        # 执行推理
+        results = model.predict(source=self.data["inputImg"], conf=float(self.data["conf"]))
+        end_time = time.time()
+        
+        res = results[0]
+        save_path = './runs/result.jpg'
+        
         # --- 逻辑修复开始 ---
-        if results['labels'] != '预测失败':
+        if res.boxes is not None and len(res.boxes) > 0:
+            res.save(filename=save_path) # 使用 YOLO 自带的保存方法，会自动处理中文标签映射
+            uploadedUrl = self.fun.upload(save_path)
+            
             self.data["status"] = 200
             self.data["message"] = "预测成功"
             self.data["outImg"] = uploadedUrl
-            self.data["allTime"] = results['allTime']
-            # 修改这两行
-            self.data["confidence"] = results['confidences']  # 直接存列表
-            self.data["label"] = results['labels']  # 直接存列表
+            self.data["allTime"] = f"{end_time - start_time:.3f}秒"
+            
+            labels = [self.CHINESE_LABELS[int(cls)] for cls in res.boxes.cls]
+            confidences = [f"{c * 100:.2f}%" for c in res.boxes.conf]
+            
+            self.data["confidence"] = confidences
+            self.data["label"] = labels
 
-            # 只有在预测成功的情况下，才去判断是否生成 AI 建议
             if self.data["ai"] in ['DeepSeek', 'Qwen']:
                 ai_type = self.data["ai"]
                 self.socketio.emit('message', {'data': f'已检测完成，正在生成{ai_type}AI建议！'})
-
-                # 处理检测结果列表
-                list_input = self.fun.process_list(results['labels'])
-
-                # 生成建议
+                list_input = self.fun.process_list(labels)
                 self.data["suggestion"] = self.chat.generate_crop_suggestion(
                     detected_labels=list_input,
                     model_type=ai_type
                 )
             else:
                 self.data["suggestion"] = '未选择AI，无AI建议！'
-
         else:
-            # 预测失败的情况
             self.data["status"] = 400
             self.data["message"] = "该图片无法识别，请重新上传！"
             self.data["suggestion"] = '识别失败，无法生成建议。'
+            self.data["label"] = []
+            self.data["confidence"] = []
+            self.data["allTime"] = f"{end_time - start_time:.3f}秒"
 
-        # --- 逻辑修复结束 ---
-
-        # 清理文件（无论成功失败都要执行）
-        # 注意：确保 inputImg 路径解析正确
+        # 自动清理临时文件
         try:
-            self.fun.cleanup_files(['./' + self.data["inputImg"].split('/')[-1]])
+            input_file = './' + self.data["inputImg"].split('/')[-1]
+            self.fun.cleanup_files([input_file, save_path])
         except:
             pass
 
-        # 关键点：return 必须处于函数的最外层缩进，确保任何路径都会返回结果
         return json.dumps(self.data, ensure_ascii=False)
 
     def predictVideo(self):
         """视频流处理接口"""
-        self.data.clear()
+        # 使用局部变量避免并发请求下的数据污染
+        request_data = {}
         # --- 1. 重要：在最外层作用域先初始化变量 ---
         video_writer = None
         cap = None
         real_w = 0
         real_h = 0
         web_original_path = ""
+        token = request.headers.get('Authorization') or request.args.get('token')
+        
         try:
             # --- A. 获取并校验参数 ---
             original_url = request.args.get('inputVideo')
             if not original_url:
                 return Response("Error: 未接收到视频地址", status=400)
-                # 简单后缀检查（可选）
-            if not original_url:
-                return Response("Error: 未接收到视频地址", status=400)
-                # 简单后缀检查（可选）
+            
             valid_extensions = ('.mp4', '.avi', '.mov', '.mkv')
             if not original_url.lower().endswith(valid_extensions):
                 return Response("Error: 不支持的文件格式", status=400)
-            self.data.update({
+                
+            request_data.update({
                 "username": request.args.get('username'),
                 "weight": request.args.get('weight'),
                 "conf": request.args.get('conf'),
@@ -278,12 +290,12 @@ class VideoProcessingApp:
                 "inputVideo": original_url
             })
 
-            # 下载并转码原视频（这一步没变）
-            self.fun.download(self.data["inputVideo"], self.paths['download'])
+            # 下载并转码原视频
+            self.fun.download(request_data["inputVideo"], self.paths['download'])
+            
             # --- B. 深度检查：尝试用OpenCV打开 ---
             cap = cv2.VideoCapture(self.paths['download'])
             if not cap.isOpened():
-                # 如果打不开，说明文件损坏或不是有效视频
                 self.fun.cleanup_files([self.paths['download']])
                 return Response("Error: 视频文件损坏或无法解析", status=415)
 
@@ -293,6 +305,7 @@ class VideoProcessingApp:
                 cap.release()
                 self.fun.cleanup_files([self.paths['download']])
                 return Response("Error: 视频内容为空", status=415)
+                
             # --- C. 初始化转码与写入器 ---
             web_original_path = self.paths['download'] + "_web.mp4"
             for _ in self.fun.convert_avi_to_mp4(self.paths['download'], web_original_path):
@@ -300,11 +313,11 @@ class VideoProcessingApp:
 
             uploaded_web_url = self.fun.upload(web_original_path)
             if uploaded_web_url:
-                self.data["inputVideo"] = uploaded_web_url
-
-
+                request_data["inputVideo"] = uploaded_web_url
 
             # --- 2. 获取第一帧并确定尺寸 ---
+            # 重新读取第一帧（因为上面为了校验已经 read 了一次）
+            cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
             ret, first_frame = cap.read()
             if not ret:
                 raise ValueError("无法读取视频内容")
@@ -320,27 +333,27 @@ class VideoProcessingApp:
                 (real_w, real_h)
             )
 
-            # 重置视频进度到开头，防止漏掉第一帧
+            # 重置视频进度到开头
             cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+            
+            # 加载模型 (修复位置：确保在 try 块内成功执行)
+            model = self.get_model(request_data["weight"])
+            model.model.names = self.CHINESE_LABELS
 
         except Exception as e:
             print(f"初始化失败: {e}")
-            # 如果初始化就失败了，直接返回错误响应，不进入 generate
+            if cap: cap.release()
+            if video_writer: video_writer.release()
             return Response(f"Error: {str(e)}", status=500)
 
-            # 加载模型
-        model = YOLO(f'./weights/{self.data["weight"]}')
-        model.model.names = self.CHINESE_LABELS
-
         def generate():
-            # 这里使用了闭包，会自动捕获外层已经赋值好的 real_w, video_writer 等
             try:
                 while cap and cap.isOpened():
                     ret, frame = cap.read()
                     if not ret:
                         break
 
-                    results = model.predict(source=frame, conf=float(self.data['conf']), show=False)
+                    results = model.predict(source=frame, conf=float(request_data['conf']), show=False)
                     processed_frame = results[0].plot()
 
                     # 尺寸安全检查
@@ -357,7 +370,7 @@ class VideoProcessingApp:
                 print(f"生成流时出错: {e}")
 
             finally:
-                # --- 3. 这里的清理逻辑现在是安全的 ---
+                # --- 3. 释放资源并保存结果 ---
                 self.fun.cleanup_resources(cap, video_writer)
                 self.socketio.emit('message', {'data': '处理完成，正在保存！'})
 
@@ -369,8 +382,8 @@ class VideoProcessingApp:
                     self.socketio.emit('progress', {'data': progress})
 
                 uploadedUrl = self.fun.upload(self.paths['output'])
-                self.data["outVideo"] = uploadedUrl
-                self.fun.save_data(json.dumps(self.data), 'http://localhost:9999/videoRecords')
+                request_data["outVideo"] = uploadedUrl
+                self.fun.save_data(json.dumps(request_data), 'http://localhost:9999/videoRecords', token=token)
 
                 # 清理文件
                 to_cleanup = [self.paths['download'], self.paths['output'], self.paths['video_output']]
@@ -390,15 +403,16 @@ class VideoProcessingApp:
         """摄像头视频流处理接口"""
         # 1. 校验核心参数
         weight = request.args.get('weight')
+        token = request.headers.get('Authorization') or request.args.get('token')
         if not weight:
             return Response("Error: 未指定模型权重", status=400)
 
-        self.data.clear()
-        self.data.update({
-            "username": request.args.get('username'), "weight": request.args.get('weight'),
-            "conf": request.args.get('conf'), "startTime": request.args.get('startTime')
-        })
-
+        request_data = {
+            "username": request.args.get('username'), 
+            "weight": weight,
+            "conf": request.args.get('conf'), 
+            "startTime": request.args.get('startTime')
+        }
 
         self.socketio.emit('message', {'data': '正在加载，请稍等！'})
 
@@ -406,11 +420,13 @@ class VideoProcessingApp:
         if not cap.isOpened():
             return Response("Error: 无法启动摄像头，请检查设备连接", status=503)
         try:
-            model = YOLO(f'./weights/{self.data["weight"]}')
+            model = self.get_model(request_data["weight"])
             model.model.names = self.CHINESE_LABELS
         except  Exception as e:
+            if cap: cap.release()
             return Response(f"Error: 模型加载失败: {str(e)}", status=500)
-        #设置参数
+            
+        # 设置参数
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
         video_writer = cv2.VideoWriter(self.paths['camera_output'], cv2.VideoWriter_fourcc(*'XVID'), 20, (640, 480))
@@ -422,7 +438,7 @@ class VideoProcessingApp:
                     ret, frame = cap.read()
                     if not ret:
                         break
-                    results = model.predict(source=frame, imgsz=640, conf=float(self.data['conf']), show=False)
+                    results = model.predict(source=frame, imgsz=640, conf=float(request_data['conf']), show=False)
                     processed_frame = results[0].plot()
                     if self.recording and video_writer:
                         video_writer.write(processed_frame)
@@ -431,11 +447,11 @@ class VideoProcessingApp:
             finally:
                 self.fun.cleanup_resources(cap, video_writer)
                 self.socketio.emit('message', {'data': '处理完成，正在保存！'})
-                for progress in self.fun.convert_avi_to_mp4(self.paths['camera_output']):
+                for progress in self.fun.convert_avi_to_mp4(self.paths['camera_output'], self.paths['output']):
                     self.socketio.emit('progress', {'data': progress})
                 uploadedUrl = self.fun.upload(self.paths['output'])
-                self.data["outVideo"] = uploadedUrl
-                self.fun.save_data(json.dumps(self.data), 'http://localhost:9999/cameraRecords')
+                request_data["outVideo"] = uploadedUrl
+                self.fun.save_data(json.dumps(request_data), 'http://localhost:9999/cameraRecords', token=token)
                 self.fun.cleanup_files([self.paths['download'], self.paths['output'], self.paths['camera_output']])
 
         return Response(generate(), mimetype='multipart/x-mixed-replace; boundary=frame')

@@ -85,7 +85,7 @@ public class FileController {
 
             String safeIp = (ip == null) ? "localhost" : ip;
             String safePort = (port == null) ? "9999" : port;
-            String fileUrl = "http://" + safeIp + ":" + safePort + "/files/" + flag;
+            String fileUrl = "http://" + safeIp + ":" + safePort + "/files/" + flag + "_" + originalFilename;
             log.info("✅ 文件上传成功，URL: {}", fileUrl);
             return Result.success(fileUrl);
         } catch (Exception e) {

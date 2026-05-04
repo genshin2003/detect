@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.example.Kcsj.common.JwtUtils;
 import com.example.Kcsj.common.Result;
 import com.example.Kcsj.entity.User;
 import com.example.Kcsj.mapper.UserMapper;
@@ -72,8 +73,11 @@ public class UserController {
         log.info(userPwd.getPassword());
 
         if (!userPwd.getPassword().equals(md5password)){
-            return Result.error("-1", "1密码错误");
-            }
+            return Result.error("-1", "密码错误");
+        }
+        // 生成 JWT Token
+        String token = JwtUtils.createToken(userPwd.getId(), userPwd.getUsername(), userPwd.getRole());
+        userPwd.setToken(token);
         userPwd.setPassword(null);
         return Result.success(userPwd);
     }
