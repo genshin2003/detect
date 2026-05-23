@@ -330,10 +330,16 @@ const initradarChart = () => {
 	state.global.homeCharFour = markRaw(echarts.init(homeradarRef.value, state.charts.theme));
 	const confStatsByUser = state.data.reduce((acc, prediction) => {
 		const { username, confidence } = prediction;
-		const confidences = JSON.parse(confidence).map(percentStr => {
-			const numValue = parseFloat(percentStr.replace('%', '')) / 100;
-			return Number(numValue.toFixed(4));
-		});
+		let confidences: number[] = [];
+		try {
+			confidences = JSON.parse(confidence).map((percentStr: string) => {
+				const numValue = parseFloat(percentStr.replace('%', '')) / 100;
+				return Number(numValue.toFixed(4));
+			});
+		} catch {
+			return acc;
+		}
+		if (confidences.length === 0) return acc;
 		const predictionAvg = confidences.reduce((sum, val) => sum + val, 0) / confidences.length;
 		if (!acc[username]) {
 			acc[username] = { total: predictionAvg, count: 1 };

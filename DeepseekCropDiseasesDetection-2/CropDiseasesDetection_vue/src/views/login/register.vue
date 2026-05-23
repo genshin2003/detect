@@ -53,11 +53,11 @@ const ruleForm = reactive({
 const registerRules = reactive<FormRules>({
 	username: [
 		{ required: true, message: '请输入账号', trigger: 'blur' },
-		{ min: 3, max: 5, message: '长度在3-5个字符', trigger: 'blur' },
+		{ min: 3, max: 10, message: '长度在3-10个字符', trigger: 'blur' },
 	],
 	password: [
 		{ required: true, message: '请输入密码', trigger: 'blur' },
-		{ min: 3, max: 5, message: '长度在3-5个字符', trigger: 'blur' },
+		{ min: 5, max: 8, message: '长度在5-8个字符', trigger: 'blur' },
 	],
 	confirm: [
 		{ required: true, message: '请确认密码', trigger: 'blur' },

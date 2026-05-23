@@ -145,7 +145,7 @@ public class PredictionController {
                 imgRecords.setUsername(request.getUsername());
                 imgRecords.setStartTime(request.getStartTime());
                 imgRecords.setAi(request.getAi());
-                imgRecords.setLable(String.valueOf(responses.get("label")));
+                imgRecords.setLabel(String.valueOf(responses.get("label")));
                 imgRecords.setConfidence(String.valueOf(responses.get("confidence")));
                 imgRecords.setAllTime(String.valueOf(responses.get("allTime")));
                 imgRecords.setOutImg(String.valueOf(responses.get("outImg")));
@@ -292,7 +292,7 @@ public class PredictionController {
 
                 Object labelObj = item.get("label");
                 String labelStr = (labelObj instanceof JSONArray) ? ((JSONArray) labelObj).toJSONString() : String.valueOf(labelObj);
-                record.setLable(labelStr);
+                record.setLabel(labelStr);
 
                 Object confidenceObj = item.get("confidence");
                 String confidenceStr = (confidenceObj instanceof JSONArray) ? ((JSONArray) confidenceObj).toJSONString() : String.valueOf(confidenceObj);

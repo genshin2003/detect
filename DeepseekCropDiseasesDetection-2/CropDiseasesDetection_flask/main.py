@@ -63,21 +63,26 @@ class VideoProcessingApp:
         def token_required(f):
             @wraps(f)
             def decorated(*args, **kwargs):
-                token = request.headers.get('Authorization') or request.args.get('token')
-                if not token:
-                    return jsonify({'message': 'Token is missing!', 'code': 401}), 401
-                
-                # 去除可能的引号或空格
-                token = token.strip().strip('"').strip("'")
-                
                 try:
+                    token = request.headers.get('Authorization') or request.args.get('token')
+                    if not token:
+                        return jsonify({'message': 'Token is missing!', 'code': 401}), 401
+
+                    # 去除可能的引号或空格
+                    token = token.strip().strip('"').strip("'")
+
                     jwt.decode(token, self.secret_key, algorithms=["HS256"])
+                    return f(*args, **kwargs)
                 except jwt.ExpiredSignatureError:
                     return jsonify({'message': 'Token has expired!', 'code': 401}), 401
                 except jwt.InvalidTokenError as e:
                     print(f"Token validation failed: {str(e)}") # 打印错误日志方便调试
                     return jsonify({'message': 'Token is invalid!', 'code': 401}), 401
-                return f(*args, **kwargs)
+                except Exception as e:
+                    import traceback
+                    print(f"token_required 装饰器异常: {e}")
+                    traceback.print_exc()
+                    return jsonify({'message': f'Server error: {str(e)}', 'code': 500}), 500
             return decorated
 
         self.app.add_url_rule('/file_names', 'file_names', token_required(self.file_names), methods=['GET'])
@@ -121,76 +126,94 @@ class VideoProcessingApp:
 
     def predictImgBatch(self):
         """批量图片预测接口"""
-        files = request.files.getlist('images')
-        file_names = [file.filename for file in files]
-        weight = request.form.get('weight')
-        conf = float(request.form.get('conf', 0.5))
-        ai = request.form.get('ai', '不使用AI')
-        token = request.headers.get('Authorization') or request.args.get('token')
+        try:
+            files = request.files.getlist('images')
+            file_names = [file.filename for file in files]
+            weight = request.form.get('weight')
+            conf = float(request.form.get('conf', 0.5))
+            ai = request.form.get('ai', '不使用AI')
+            token = request.headers.get('Authorization') or request.args.get('token')
 
-        model = self.get_model(weight)
-        model.model.names = self.CHINESE_LABELS # 注入中文标签
+            model = self.get_model(weight)
+            model.model.names = self.CHINESE_LABELS # 注入中文标签
 
-        imgs = []
-        for file in files:
-            file_bytes = np.frombuffer(file.read(), np.uint8)
-            img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
-            imgs.append(img)
+            imgs = []
+            for file in files:
+                file_bytes = np.frombuffer(file.read(), np.uint8)
+                img = cv2.imdecode(file_bytes, cv2.IMREAD_COLOR)
+                imgs.append(img)
 
-        start_time = time.time()
-        start_time_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        results = model.predict(source=imgs, conf=conf)
-        end_time = time.time()
-        total_time = end_time - start_time
-        avg_time = total_time / len(results) if len(results) > 0 else 0
+            start_time = time.time()
+            start_time_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            results = model.predict(source=imgs, conf=conf)
+            end_time = time.time()
+            total_time = end_time - start_time
+            avg_time = total_time / len(results) if len(results) > 0 else 0
 
-        output = []
-        for i, r in enumerate(results):
-            labels = []
-            confidences = []
-            if r.boxes is not None:
-                labels = [self.CHINESE_LABELS[int(cls)] for cls in r.boxes.cls]
-                confidences = [f"{c * 100:.2f}%" for c in r.boxes.conf]
-            
-            save_name = f"batch_{uuid.uuid4().hex}.jpg"
-            save_path = f"./runs/{save_name}"
-            r.save(filename=save_path) # 使用原生保存
-            
-            uploadedUrl = self.fun.upload(save_path)
-            img_bytes = cv2.imencode('.jpg', r.plot())[1].tobytes()
-            img_base64 = base64.b64encode(img_bytes).decode('utf-8')
+            from concurrent.futures import ThreadPoolExecutor, as_completed
 
-            # AI 建议逻辑 (保持简单同步处理，避免过度重构)
-            suggestion = '未选择AI，无AI建议！'
-            if ai in ['DeepSeek', 'Qwen'] and labels:
-                list_input = self.fun.process_list(labels)
-                suggestion = self.chat.generate_crop_suggestion(list_input, ai)
-            elif not labels:
-                suggestion = '识别失败，无法生成建议。'
+            output = []
+            # 1. YOLO 后处理：提取标签、保存图片、上传、编码 Base64
+            all_labels = []
+            for i, r in enumerate(results):
+                labels = []
+                confidences = []
+                if r.boxes is not None:
+                    labels = [self.CHINESE_LABELS[int(cls)] for cls in r.boxes.cls]
+                    confidences = [f"{c * 100:.2f}%" for c in r.boxes.conf]
 
-            item = {
-                "label": labels,
-                "confidence": confidences,
-                "allTime": f"{avg_time:.3f}秒",
-                "startTime": start_time_str,
-                "inputImg": file_names[i],
-                "outImg": uploadedUrl,
-                "ai": ai,
-                "suggestion": suggestion,
-                "outImgBase64": img_base64,
-                "username": request.form.get('username'),
-                "weight": weight,
-                "conf": conf
-            }
-            output.append(item)
-            
-            # 批量识别的结果也入库
-            self.fun.save_data(json.dumps(item), 'http://localhost:9999/imgRecords', token=token)
-            
-            # 清理
-            self.fun.cleanup_files([save_path])
+                save_name = f"batch_{uuid.uuid4().hex}.jpg"
+                save_path = f"./runs/{save_name}"
+                r.save(filename=save_path)
 
-        return {"code": 0, "data": output}
+                uploadedUrl = self.fun.upload(save_path)
+                img_bytes = cv2.imencode('.jpg', r.plot())[1].tobytes()
+                img_base64 = base64.b64encode(img_bytes).decode('utf-8')
+
+                all_labels.append(labels)
+                output.append({
+                    "label": labels,
+                    "confidence": confidences,
+                    "allTime": f"{avg_time:.3f}秒",
+                    "startTime": start_time_str,
+                    "inputImg": file_names[i],
+                    "outImg": uploadedUrl,
+                    "ai": ai,
+                    "suggestion": "",
+                    "outImgBase64": img_base64,
+                    "username": request.form.get('username'),
+                    "weight": weight,
+                    "conf": conf
+                })
+                self.fun.cleanup_files([save_path])
+
+            # 2. 并发生成 AI 建议
+            if ai in ['DeepSeek', 'Qwen']:
+                ai_startTime = time.time()
+
+                def generate_suggestion(idx, labels):
+                    if labels:
+                        list_input = self.fun.process_list(labels)
+                        return idx, self.chat.generate_crop_suggestion(list_input, ai)
+                    return idx, '识别失败，无法生成建议。'
+
+                with ThreadPoolExecutor(max_workers=min(len(output), 8)) as executor:
+                    futures = [executor.submit(generate_suggestion, i, all_labels[i]) for i in range(len(output))]
+                    for future in as_completed(futures):
+                        idx, suggestion = future.result()
+                        output[idx]["suggestion"] = suggestion
+
+                print(f"AI 建议并发耗时: {time.time() - ai_startTime:.3f}秒")
+            else:
+                for i in range(len(output)):
+                    output[i]["suggestion"] = '未选择AI，无AI建议！' if all_labels[i] else '识别失败，无法生成建议。'
+
+            return {"code": 0, "data": output}
+        except Exception as e:
+            import traceback
+            print(f"predictImgBatch 错误: {e}")
+            traceback.print_exc()
+            return {"code": -1, "message": str(e)}
     def file_names(self):
         """模型列表接口"""
         weight_items = [{'value': name, 'label': name} for name in self.fun.get_file_names("./weights")]
@@ -208,6 +231,7 @@ class VideoProcessingApp:
 
         # 统一使用 get_model 缓存机制
         model = self.get_model(self.data["weight"])
+        model.model.names = self.CHINESE_LABELS  # 注入中文标签
         start_time = time.time()
         
         # 执行推理

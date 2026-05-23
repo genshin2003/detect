@@ -1,9 +1,6 @@
 import os
-
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 from ultralytics import YOLO
-
-
 def train_yolo11():
     # 1. 加载 YOLO11n 模型
     # 如果本地没有 yolo11n.pt，它会自动下载官方预训练权重

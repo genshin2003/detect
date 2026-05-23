@@ -98,7 +98,7 @@ const registerRules = reactive<FormRules>({
 	],
 	password: [
 		{ required: true, message: '请输入密码', trigger: 'blur' },
-		{ min: 3, max: 10, message: '长度在3-10个字符', trigger: 'blur' },
+		{ min: 5, max: 8, message: '长度在5-8个字符', trigger: 'blur' },
 	],
 });
 const forgotRules = reactive<FormRules>({
@@ -108,7 +108,7 @@ const forgotRules = reactive<FormRules>({
 	],
 	password: [
 		{ required: true, message: '请输入新密码', trigger: 'blur' },
-		{ min: 3, max: 10, message: '长度在3-10个字符', trigger: 'blur' },
+		{ min: 5, max: 8, message: '长度在5-8个字符', trigger: 'blur' },
 	],
 	confirmPassword: [
 		{ required: true, message: '请再次输入新密码', trigger: 'blur' },
