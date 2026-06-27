@@ -2,7 +2,7 @@ package com.example.Kcsj.common;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.HashMap;
@@ -14,6 +14,10 @@ public class JwtUtils {
     // 设置密钥
     public static final String SECRET_KEY = "crop_diseases_detection_secret_key_2026";
 
+    private static SecretKey getSigningKey() {
+        return io.jsonwebtoken.security.Keys.hmacShaKeyFor(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
+    }
+
     /**
      * 生成 JWT Token
      */
@@ -24,11 +28,11 @@ public class JwtUtils {
         claims.put("role", role);
 
         return Jwts.builder()
-                .setClaims(claims)
-                .setSubject(username)
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + EXPIRE_TIME))
-                .signWith(SignatureAlgorithm.HS256, SECRET_KEY.getBytes(StandardCharsets.UTF_8))
+                .claims(claims)
+                .subject(username)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + EXPIRE_TIME))
+                .signWith(getSigningKey())
                 .compact();
     }
 
@@ -38,9 +42,10 @@ public class JwtUtils {
     public static Claims parseToken(String token) {
         try {
             return Jwts.parser()
-                    .setSigningKey(SECRET_KEY.getBytes(StandardCharsets.UTF_8))
-                    .parseClaimsJws(token)
-                    .getBody();
+                    .verifyWith(getSigningKey())
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
         } catch (Exception e) {
             return null;
         }

@@ -4,8 +4,8 @@ import io.jsonwebtoken.Claims;
 import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
 import org.springframework.web.servlet.HandlerInterceptor;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 @Component
 public class JwtInterceptor implements HandlerInterceptor {
@@ -16,16 +16,13 @@ public class JwtInterceptor implements HandlerInterceptor {
         if (!(handler instanceof HandlerMethod)) {
             return true;
         }
-
         // 获取请求头中的 Authorization (Token)
         String token = request.getHeader("Authorization");
-        
         if (token == null || token.isEmpty()) {
             response.setStatus(401);
             response.getWriter().write("{\"code\": 401, \"msg\": \"No token provided\"}");
             return false;
         }
-
         // 验证 Token
         Claims claims = JwtUtils.parseToken(token);
         if (claims == null) {
@@ -33,12 +30,10 @@ public class JwtInterceptor implements HandlerInterceptor {
             response.getWriter().write("{\"code\": 401, \"msg\": \"Invalid or expired token\"}");
             return false;
         }
-
         // 将解析出来的用户信息存入 request，方便后续 Controller 使用
         request.setAttribute("userId", claims.get("userId"));
         request.setAttribute("username", claims.get("username"));
         request.setAttribute("role", claims.get("role"));
-
         return true;
     }
 }

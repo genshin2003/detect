@@ -319,3 +319,49 @@
 		overflow: auto;
 	}
 }
+
+/* 紧急公告通知样式
+------------------------------- */
+.el-notification.urgent-notification {
+	border-left: 4px solid #f56c6c !important;
+	background: linear-gradient(135deg, #fef0f0 0%, #fff 100%) !important;
+	box-shadow: 0 4px 20px rgba(245, 108, 108, 0.3) !important;
+	animation: urgentShake 0.5s ease-in-out;
+
+	.el-notification__title {
+		color: #f56c6c !important;
+		font-weight: 700 !important;
+		font-size: 16px !important;
+	}
+
+	.el-notification__content {
+		margin-top: 8px !important;
+	}
+
+	.el-notification__closeBtn {
+		color: #f56c6c !important;
+	}
+
+	&::before {
+		content: '';
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		height: 3px;
+		background: linear-gradient(90deg, #f56c6c, #f89898, #f56c6c);
+		background-size: 200% 100%;
+		animation: urgentGradient 2s linear infinite;
+	}
+}
+
+@keyframes urgentShake {
+	0%, 100% { transform: translateX(0); }
+	10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
+	20%, 40%, 60%, 80% { transform: translateX(2px); }
+}
+
+@keyframes urgentGradient {
+	0% { background-position: 0% 0%; }
+	100% { background-position: 200% 0%; }
+}

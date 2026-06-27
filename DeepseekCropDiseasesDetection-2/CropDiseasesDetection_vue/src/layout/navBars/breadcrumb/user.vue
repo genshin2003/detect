@@ -20,20 +20,13 @@
 		<div class="layout-navbars-breadcrumb-user-icon" @click="onLayoutSetingClick">
 			<i class="icon-skin iconfont" :title="$t('message.user.title3')"></i>
 		</div>
-		<!-- <div class="layout-navbars-breadcrumb-user-icon">
-			<el-popover placement="bottom" trigger="click" transition="el-zoom-in-top" :width="300" :persistent="false">
-				<template #reference>
-					<el-badge :is-dot="true">
-						<el-icon :title="$t('message.user.title4')">
-							<ele-Bell />
-						</el-icon>
-					</el-badge>
-				</template>
-				<template #default>
-					<UserNews />
-				</template>
-			</el-popover>
-		</div> -->
+		<div class="layout-navbars-breadcrumb-user-icon" @click="onMessageClick">
+			<el-badge :value="messageStore.unreadCount" :hidden="messageStore.unreadCount === 0" :max="99">
+				<el-icon title="消息中心">
+					<ele-Bell />
+				</el-icon>
+			</el-badge>
+		</div>
 		<div class="layout-navbars-breadcrumb-user-icon mr10" @click="onScreenfullClick">
 			<i
 				class="iconfont"
@@ -68,6 +61,8 @@ import { useI18n } from 'vue-i18n';
 import { storeToRefs } from 'pinia';
 import { useUserInfo } from '/@/stores/userInfo';
 import { useThemeConfig } from '/@/stores/themeConfig';
+import { useMessageStore } from '/@/stores/message';
+import { messageSocket } from '/@/utils/websocket';
 import other from '/@/utils/other';
 import request from '/@/utils/request';
 import { Session, Local } from '/@/utils/storage';
@@ -83,6 +78,7 @@ const { locale, t } = useI18n();
 const router = useRouter();
 const stores = useUserInfo();
 const storesThemeConfig = useThemeConfig();
+const messageStore = useMessageStore();
 const { userInfos } = storeToRefs(stores);
 const { themeConfig } = storeToRefs(storesThemeConfig);
 const searchRef = ref();
@@ -136,6 +132,8 @@ const onHandleCommandClick = (path: string) => {
 			},
 		})
 			.then(async () => {
+				// 断开WebSocket连接
+				messageSocket.disconnect();
 				// 清除缓存/token等
 				Session.clear();
 				// 使用 reload 时，不需要调用 resetRoute() 重置路由
@@ -149,6 +147,10 @@ const onHandleCommandClick = (path: string) => {
 // 菜单搜索点击
 const onSearchClick = () => {
 	searchRef.value.openSearch();
+};
+// 消息中心点击
+const onMessageClick = () => {
+	router.push('/message');
 };
 // 组件大小改变
 const onComponentSizeChange = (size: string) => {
@@ -205,6 +207,14 @@ onMounted(() => {
 		initI18nOrSize('globalComponentSize', 'disabledSize');
 		initI18nOrSize('globalI18n', 'disabledI18n');
 	}
+	// 连接WebSocket并获取未读消息数
+	messageSocket.connect();
+	messageSocket.onMessage((data: any) => {
+		if (data.type === 'notification') {
+			messageStore.fetchUnreadCount();
+		}
+	});
+	messageStore.fetchUnreadCount();
 });
 </script>
 

@@ -13,7 +13,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.net.URLEncoder;
 import java.nio.file.Files;
@@ -128,8 +128,8 @@ public class FileController {
     // ==================== 【修复重点】动态获取文件（单文件 + 子文件夹）===================
     @GetMapping("/{flag}/{filename:.+}")
     public ResponseEntity<Resource> getFileFromFolder(
-            @PathVariable String flag,
-            @PathVariable String filename) {
+            @PathVariable("flag") String flag,
+            @PathVariable("filename") String filename) {
 
         String basePath = System.getProperty("user.dir") + "/files/";
         String filePath = basePath + flag + "/" + filename;
@@ -146,12 +146,16 @@ public class FileController {
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(contentType))
                 .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + filename + "\"")
+                .header("Access-Control-Allow-Origin", "*")
+                .header("Access-Control-Allow-Methods", "GET, OPTIONS")
+                .header("Access-Control-Allow-Headers", "*")
+                .header("Cache-Control", "public, max-age=3600")
                 .body(resource);
     }
 
     // 主服务接口：同时支持单文件（动态查找）和文件夹打包下载
     @GetMapping("/{flag}")
-    public void getFiles(@PathVariable String flag, HttpServletResponse response) {
+    public void getFiles(@PathVariable("flag") String flag, HttpServletResponse response) {
         log.info("当前在 /files/{}", flag);
         String basePath = System.getProperty("user.dir") + "/files/";
         String folderPath = basePath + flag + "/";
@@ -214,12 +218,18 @@ public class FileController {
         }
     }
 
-    // 抽取的公共方法：正确返回图片（inline + 正确 Content-Type）
+    // 抽取的公共方法：正确返回图片（inline + 正确 Content-Type + CORS头）
     private void serveImage(File file, HttpServletResponse response) throws IOException {
         String contentType = determineContentType(file.getName());
         response.setContentType(contentType);
         response.setHeader(HttpHeaders.CONTENT_DISPOSITION,
                 "inline; filename=\"" + URLEncoder.encode(file.getName(), "UTF-8") + "\"");
+        // 添加CORS头，允许跨域访问
+        response.setHeader("Access-Control-Allow-Origin", "*");
+        response.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+        response.setHeader("Access-Control-Allow-Headers", "*");
+        response.setHeader("Access-Control-Max-Age", "3600");
+        response.setHeader("Cache-Control", "public, max-age=3600");
 
         byte[] bytes = FileUtil.readBytes(file);
         try (OutputStream os = response.getOutputStream()) {

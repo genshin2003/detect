@@ -130,9 +130,12 @@ const onSubmit = () => {
 		}
 
 		const isEdit = state.dialog.title === '修改信息';
-		const api = isEdit ? '/api/user/update' : '/api/user/';
 
-		request.post(api, state.form).then((res) => {
+		const requestCall = isEdit
+			? request.put('/api/user', state.form)
+			: request.post('/api/user', state.form);
+
+		requestCall.then((res) => {
 			if (res.code == 0) {
 				ElMessage.success(`${state.dialog.submitTxt}成功！`);
 				state.dialog.isShowDialog = false;

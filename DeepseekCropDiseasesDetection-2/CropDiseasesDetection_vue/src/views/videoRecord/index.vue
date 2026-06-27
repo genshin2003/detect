@@ -16,7 +16,7 @@
 				/>
 
 				<el-input
-					v-model="state.tableData.param.search3"
+					v-model="state.tableData.param.conf"
 					size="default"
 					placeholder="请输入最低阈值"
 					style="max-width: 180px; margin-left: 15px"
@@ -27,6 +27,10 @@
 						<ele-Search />
 					</el-icon>
 					查询
+				</el-button>
+
+				<el-button size="default" type="success" class="predict-button" style="margin-left: 10px" @click="onExportExcel">
+					导出Excel
 				</el-button>
 			</div>
 
@@ -56,8 +60,12 @@
 				<el-table-column prop="conf" label="最小阈值" show-overflow-tooltip width="100" align="center"></el-table-column>
 				<el-table-column prop="username" label="识别用户" show-overflow-tooltip align="center"></el-table-column>
 				<el-table-column prop="startTime" label="识别时间" show-overflow-tooltip align="center"></el-table-column>
-				<el-table-column label="操作" width="240" align="center">
+				<el-table-column label="操作" width="350" align="center">
 					<template #default="scope">
+						<el-button size="small" text type="warning" @click="onToggleFavorite(scope.row)">
+							{{ scope.row._favorited ? '★' : '☆' }}
+						</el-button>
+						<el-button size="small" text type="primary" @click="onExportPdf(scope.row)">导出PDF</el-button>
 						<el-button size="small" text type="primary" @click="onRowDel(scope.row)">删除</el-button>
 						<el-button size="small" text type="primary" @click="show(scope.row)">查看详情</el-button>
 					</template>
@@ -77,6 +85,31 @@
 				:total="state.tableData.total"
 			>
 			</el-pagination>
+
+			<!-- 收藏弹窗 -->
+			<el-dialog v-model="favDialogVisible" title="收藏" width="400px">
+				<el-form :model="favForm" label-width="70px">
+					<el-form-item label="收藏夹">
+						<el-select v-model="favForm.folderId" style="width: 100%">
+							<el-option v-for="f in favFolders" :key="f.id" :label="f.name" :value="f.id" />
+						</el-select>
+					</el-form-item>
+					<el-form-item label="备注">
+						<el-input v-model="favForm.remark" type="textarea" :rows="2" />
+					</el-form-item>
+					<el-form-item label="优先级">
+						<el-select v-model="favForm.priority" style="width: 100%">
+							<el-option label="普通" value="NORMAL" />
+							<el-option label="重要" value="IMPORTANT" />
+							<el-option label="特别重要" value="CRITICAL" />
+						</el-select>
+					</el-form-item>
+				</el-form>
+				<template #footer>
+					<el-button @click="favDialogVisible = false">取消</el-button>
+					<el-button type="primary" @click="onSaveFavorite">保存</el-button>
+				</template>
+			</el-dialog>
 		</div>
 	</div>
 </template>
@@ -87,6 +120,7 @@ import { ElMessageBox, ElMessage } from 'element-plus';
 import request from '/@/utils/request';
 import { useUserInfo } from '/@/stores/userInfo';
 import { storeToRefs } from 'pinia';
+import { downloadPdf, downloadExcel } from '/@/utils/download';
 
 const stores = useUserInfo();
 const { userInfos } = storeToRefs(stores);
@@ -97,9 +131,10 @@ const state = reactive<SysRoleState>({
 		total: 0,
 		loading: false,
 		param: {
-			search: '',
-			search3: '',
-			search2: '',
+			username: '',
+			conf: '',
+			startTime: '',
+			endTime: '',
 			pageNum: 1,
 			pageSize: 10,
 		},
@@ -115,20 +150,17 @@ const uniqueKey = ref(0);
 const getTableData = () => {
 	state.tableData.loading = true;
 
-	// 非管理员只能看自己的记录
 	if (userInfos.value.userName != 'admin') {
-		state.tableData.param.search = userInfos.value.userName;
+		state.tableData.param.username = userInfos.value.userName;
 	}
 
-	// ====================== 新增：处理时间范围 ======================
 	if (dateRange.value && dateRange.value.length === 2) {
-		state.tableData.param.search1 = dateRange.value[0]; // 开始时间
-		state.tableData.param.search2 = dateRange.value[1]; // 结束时间
+		state.tableData.param.startTime = dateRange.value[0];
+		state.tableData.param.endTime = dateRange.value[1];
 	} else {
-		state.tableData.param.search1 = '';
-		state.tableData.param.search2 = '';
+		state.tableData.param.startTime = '';
+		state.tableData.param.endTime = '';
 	}
-	// ============================================================
 
 	request
 		.get('/api/videoRecords', {
@@ -148,6 +180,7 @@ const getTableData = () => {
 
 				// 更新唯一标识符
 				uniqueKey.value++;
+				checkFavoriteStatus();
 			} else {
 				ElMessage({
 					type: 'error',
@@ -159,6 +192,18 @@ const getTableData = () => {
 
 const show = (row: any) => {
 	window.open('http://localhost:8888/#/videoShow?id=' + row.id);
+};
+
+const onExportPdf = (row: any) => {
+	downloadPdf('video', row.id);
+};
+
+const onExportExcel = () => {
+	const params: Record<string, string> = {};
+	if (state.tableData.param.username) params.username = state.tableData.param.username;
+	if (state.tableData.param.startTime) params.startTime = state.tableData.param.startTime;
+	if (state.tableData.param.endTime) params.endTime = state.tableData.param.endTime;
+	downloadExcel('video', params);
 };
 
 const onRowDel = (row: any) => {
@@ -196,6 +241,57 @@ const onHandleSizeChange = (val: number) => {
 const onHandleCurrentChange = (val: number) => {
 	state.tableData.param.pageNum = val;
 	getTableData();
+};
+
+// ========== 收藏功能 ==========
+const favDialogVisible = ref(false);
+const favFolders = ref<any[]>([]);
+const favForm = ref({ recordId: 0, folderId: null as number | null, remark: '', tags: '', priority: 'NORMAL' });
+
+const getFolders = () => {
+	request.get('/api/favorite/folders').then(res => {
+		if (res.code == 0) favFolders.value = res.data;
+	});
+};
+
+const checkFavoriteStatus = () => {
+	const ids = state.tableData.data.map((item: any) => item.id);
+	if (ids.length === 0) return;
+	request.get('/api/favorite/batchCheck', { params: { recordIds: ids.join(','), recordType: 'VIDEO' } }).then(res => {
+		if (res.code == 0) {
+			state.tableData.data.forEach((item: any) => {
+				const fav = res.data[item.id];
+				item._favorited = !!fav;
+				item._favoriteId = fav ? fav.id : null;
+			});
+		}
+	});
+};
+
+const onToggleFavorite = (row: any) => {
+	if (row._favorited) {
+		request.delete('/api/favorite/' + row._favoriteId).then(res => {
+			if (res.code == 0) {
+				row._favorited = false;
+				row._favoriteId = null;
+				ElMessage.success('已取消收藏');
+			}
+		});
+	} else {
+		favForm.value = { recordId: row.id, folderId: null, remark: '', tags: '', priority: 'NORMAL' };
+		getFolders();
+		favDialogVisible.value = true;
+	}
+};
+
+const onSaveFavorite = () => {
+	request.post('/api/favorite', { ...favForm.value, recordType: 'VIDEO' }).then(res => {
+		if (res.code == 0) {
+			ElMessage.success('收藏成功');
+			favDialogVisible.value = false;
+			getTableData();
+		}
+	});
 };
 
 onMounted(() => {

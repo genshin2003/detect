@@ -4,7 +4,8 @@ import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
 import com.example.Kcsj.common.Result;
 import com.example.Kcsj.entity.ImgRecords;
-import com.example.Kcsj.mapper.ImgRecordsMapper;
+import com.example.Kcsj.service.ImgRecordsService;
+import com.example.Kcsj.service.MessageService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ByteArrayResource;
@@ -16,11 +17,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
-import javax.annotation.Resource;
+import jakarta.annotation.Resource;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.multipart.MultipartFile;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.io.File;
 import java.io.FileInputStream;
 import java.util.ArrayList;
@@ -32,7 +33,9 @@ import java.util.List;
 @RequestMapping("/flask")
 public class PredictionController {
     @Resource
-    ImgRecordsMapper imgRecordsMapper;
+    ImgRecordsService imgRecordsService;
+    @Resource
+    MessageService messageService;
 
     @Autowired
     FileController fileController;
@@ -107,7 +110,6 @@ public class PredictionController {
 
     @PostMapping("/predict")
     public Result<?> predict(@RequestBody PredictRequest request, HttpServletRequest httpServletRequest) {
-
         log.info("当前在/predict");
         if (request == null || request.getInputImg() == null || request.getInputImg().isEmpty()) {
             return Result.error("-1", "未提供图片链接");
@@ -150,7 +152,7 @@ public class PredictionController {
                 imgRecords.setAllTime(String.valueOf(responses.get("allTime")));
                 imgRecords.setOutImg(String.valueOf(responses.get("outImg")));
                 imgRecords.setSuggestion(String.valueOf(responses.get("suggestion")));
-                imgRecordsMapper.insert(imgRecords); // 插入到数据库
+                imgRecordsService.save(imgRecords); // 插入到数据库
                 return Result.success(response);
             }
         } catch (Exception e) {
@@ -304,13 +306,40 @@ public class PredictionController {
                 record.setWeight(weight);
                 record.setConf(conf);
 
-                imgRecordsMapper.insert(record);
+                imgRecordsService.save(record);
 
                 item.put("inputImg", inputImgUrl);
                 item.put("outImg", outImgUrl);
             }
             Long end_time=System.currentTimeMillis();
             log.info(end_time-startTime+"ms");
+
+            // 批量检测完成后发送通知（发送给用户和管理员）
+            try {
+                int totalImages = data.size();
+                // 统计识别出的不同病害种类
+                java.util.Set<String> diseaseTypes = new java.util.HashSet<>();
+                for (int i = 0; i < data.size(); i++) {
+                    JSONObject item = data.getJSONObject(i);
+                    Object labelObj = item.get("label");
+                    if (labelObj instanceof JSONArray) {
+                        JSONArray labels = (JSONArray) labelObj;
+                        for (int j = 0; j < labels.size(); j++) {
+                            diseaseTypes.add(labels.getString(j));
+                        }
+                    } else if (labelObj != null) {
+                        diseaseTypes.add(String.valueOf(labelObj));
+                    }
+                }
+                String title = "批量检测完成通知";
+                String content = String.format("用户 %s 的批量检测已完成！共处理 %d 张图片，识别出 %d 种病害类型，耗时 %.1f 秒。",
+                        username, totalImages, diseaseTypes.size(), (end_time - startTime) / 1000.0);
+                // 发送给当前用户和管理员
+                messageService.sendToUserByUsernameAndAdmin(username, title, content, "BATCH_DETECT", "NORMAL");
+            } catch (Exception e) {
+                log.error("发送批量检测通知失败", e);
+            }
+
             return Result.success(flaskJson.get("data"));
         } catch (Exception e) {
             log.error("批量识别中转失败", e);

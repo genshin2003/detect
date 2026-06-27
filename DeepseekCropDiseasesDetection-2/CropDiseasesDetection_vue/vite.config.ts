@@ -42,6 +42,10 @@ const viteConfig = defineConfig((mode: ConfigEnv) => {
 					changeOrigin: true,
 					rewrite: (path) => path.replace(/^\/flask/, ''),
 				},
+				'/files': {
+					target: 'http://localhost:9999/',
+					changeOrigin: true,
+				},
 			},
 		},
 		build: {

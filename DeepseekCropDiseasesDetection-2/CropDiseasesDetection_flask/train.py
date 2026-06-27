@@ -13,7 +13,7 @@ def train_model():
         amp=False,
         optimizer='SGD',
         workers=2,
-        close_mosaic=0,
+        close_mosaic=10,
         name='v8_fast_20e',
         val=True,
         save_period=5

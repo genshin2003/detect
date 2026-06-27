@@ -316,8 +316,7 @@ class VideoProcessingApp:
 
             # 下载并转码原视频
             self.fun.download(request_data["inputVideo"], self.paths['download'])
-            
-            # --- B. 深度检查：尝试用OpenCV打开 ---
+
             cap = cv2.VideoCapture(self.paths['download'])
             if not cap.isOpened():
                 self.fun.cleanup_files([self.paths['download']])
@@ -329,8 +328,7 @@ class VideoProcessingApp:
                 cap.release()
                 self.fun.cleanup_files([self.paths['download']])
                 return Response("Error: 视频内容为空", status=415)
-                
-            # --- C. 初始化转码与写入器 ---
+
             web_original_path = self.paths['download'] + "_web.mp4"
             for _ in self.fun.convert_avi_to_mp4(self.paths['download'], web_original_path):
                 pass

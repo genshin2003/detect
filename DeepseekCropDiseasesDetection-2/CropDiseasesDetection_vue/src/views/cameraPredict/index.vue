@@ -35,7 +35,7 @@
 
 
 <script setup lang="ts">
-import { reactive, ref, onMounted } from 'vue';
+import { reactive, ref, onMounted, onUnmounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import request from '/@/utils/request';
 import { useUserInfo } from '/@/stores/userInfo';
@@ -68,16 +68,17 @@ const state = reactive({
 
 const socketService = new SocketService();
 
-socketService.on('message', (data) => {
+const onSocketMessage = (data: any) => {
 	console.log('Received message:', data);
 	ElMessage.success(data);
-});
+};
+socketService.on('message', onSocketMessage);
 
 const formatTooltip = (val: number) => {
 	return val / 100
 }
 
-socketService.on('progress', (data) => {
+const onSocketProgress = (data: any) => {
 	state.percentage = parseInt(data);
 	if (parseInt(data) < 100) {
 		state.isShow = true;
@@ -90,6 +91,13 @@ socketService.on('progress', (data) => {
 		}, 2000);
 	}
 	console.log('Received message:', data);
+};
+socketService.on('progress', onSocketProgress);
+
+onUnmounted(() => {
+	socketService.off('message', onSocketMessage);
+	socketService.off('progress', onSocketProgress);
+	socketService.disconnect();
 });
 
 const getData = () => {

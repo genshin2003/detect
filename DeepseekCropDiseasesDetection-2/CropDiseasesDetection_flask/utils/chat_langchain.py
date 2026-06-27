@@ -5,7 +5,7 @@ from typing import List, Dict, Optional
 from langchain.chat_models import init_chat_model
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from langchain_core.callbacks import StreamingStdOutCallbackHandler
-
+import time
 
 class ChatAPI:
     """使用 LangChain 封装的 ChatAPI，支持 DeepSeek 和 Qwen"""
@@ -19,7 +19,7 @@ class ChatAPI:
         if self.deepseek_api_key:
             try:
                 self.deepseek_model = init_chat_model(
-                    model="deepseek-v3.2",
+                    model="deepseek-v4-pro",
                     model_provider="openai",
                     base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
                     api_key=self.deepseek_api_key,
@@ -37,7 +37,7 @@ class ChatAPI:
                 self.qwen_api_key.encode("latin-1")
 
                 self.qwen_model = init_chat_model(
-                    model="qwen-max",
+                    model="qwen3.7-max",
                     model_provider="openai",
                     base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
                     api_key=self.qwen_api_key,
@@ -137,8 +137,15 @@ if __name__ == "__main__":
 
     # 测试生成建议
     test_labels = ["番茄早疫病", "叶片发黄"]
-    print("=== DeepSeek 建议 ===")
-    print(chat.generate_crop_suggestion(test_labels, "DeepSeek"))
+    start_time = time.time()
+    result = chat.generate_crop_suggestion(test_labels, "DeepSeek")
+    elapsed = time.time() - start_time
+    print(f"=== DeepSeek 建议 (耗时: {elapsed:.4f}秒) ===")
+    print(result)
 
-    print("\n=== Qwen 建议 ===")
-    print(chat.generate_crop_suggestion(test_labels, "Qwen"))
+    # === Qwen 建议 ===
+    start_time = time.time()
+    result = chat.generate_crop_suggestion(test_labels, "Qwen")
+    elapsed = time.time() - start_time
+    print(f"\n=== Qwen 建议 (耗时: {elapsed:.4f}秒) ===")
+    print(result)

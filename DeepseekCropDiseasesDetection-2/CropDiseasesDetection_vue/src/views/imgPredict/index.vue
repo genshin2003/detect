@@ -103,7 +103,7 @@
 </template>
 
 <script setup lang="ts" name="personal">
-import { reactive, ref, onMounted } from 'vue';
+import { reactive, ref, onMounted, onUnmounted } from 'vue';
 import type { UploadInstance, UploadProps } from 'element-plus';
 import { ElMessage } from 'element-plus';
 import request from '/@/utils/request';
@@ -155,13 +155,19 @@ const formatTooltip = (val: number) => {
 
 const socketService = new SocketService();
 
-socketService.on('message', (data) => {
+const onSocketMessage = (data: any) => {
 	console.log('Received message:', data);
 	ElMessage({
 		message: data,
 		type: 'success',
 		duration: 3000
 	});
+};
+socketService.on('message', onSocketMessage);
+
+onUnmounted(() => {
+	socketService.off('message', onSocketMessage);
+	socketService.disconnect();
 });
 
 const handleAvatarSuccessone: UploadProps['onSuccess'] = (response, uploadFile) => {

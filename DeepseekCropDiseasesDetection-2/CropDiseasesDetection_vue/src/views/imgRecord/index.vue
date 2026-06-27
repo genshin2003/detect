@@ -14,7 +14,7 @@
 
 				<!-- 识别种类查询 -->
 				<el-input
-					v-model="state.tableData.param.search2"
+					v-model="state.tableData.param.label"
 					size="default"
 					placeholder="请输入识别结果"
 					style="max-width: 180px; margin-left: 15px"
@@ -29,6 +29,10 @@
 
 				<el-button size="default" @click="resetSearch" style="margin-left: 10px">
 					重置
+				</el-button>
+
+				<el-button size="default" type="success" class="predict-button" style="margin-left: 10px" @click="onExportExcel">
+					导出Excel
 				</el-button>
 			</div>
 
@@ -67,8 +71,12 @@
 				<el-table-column prop="suggestion" label="AI建议" show-overflow-tooltip align="center" />
 				<el-table-column prop="startTime" label="识别时间" width="200" align="center" />
 				<el-table-column prop="username" label="识别用户" show-overflow-tooltip align="center" />
-				<el-table-column label="操作" width="80">
+				<el-table-column label="操作" width="200">
 					<template #default="scope">
+						<el-button size="small" text type="warning" @click="onToggleFavorite(scope.row)">
+							{{ scope.row._favorited ? '★' : '☆' }}
+						</el-button>
+						<el-button size="small" text type="primary" @click="onExportPdf(scope.row)">导出PDF</el-button>
 						<el-button size="small" text type="primary" @click="onRowDel(scope.row)">删除</el-button>
 					</template>
 				</el-table-column>
@@ -79,6 +87,31 @@
 				background v-model:page-size="state.tableData.param.pageSize"
 				layout="total, sizes, prev, pager, next, jumper" :total="state.tableData.total">
 			</el-pagination>
+
+			<!-- 收藏弹窗 -->
+			<el-dialog v-model="favDialogVisible" title="收藏" width="400px">
+				<el-form :model="favForm" label-width="70px">
+					<el-form-item label="收藏夹">
+						<el-select v-model="favForm.folderId" style="width: 100%">
+							<el-option v-for="f in favFolders" :key="f.id" :label="f.name" :value="f.id" />
+						</el-select>
+					</el-form-item>
+					<el-form-item label="备注">
+						<el-input v-model="favForm.remark" type="textarea" :rows="2" />
+					</el-form-item>
+					<el-form-item label="优先级">
+						<el-select v-model="favForm.priority" style="width: 100%">
+							<el-option label="普通" value="NORMAL" />
+							<el-option label="重要" value="IMPORTANT" />
+							<el-option label="特别重要" value="CRITICAL" />
+						</el-select>
+					</el-form-item>
+				</el-form>
+				<template #footer>
+					<el-button @click="favDialogVisible = false">取消</el-button>
+					<el-button type="primary" @click="onSaveFavorite">保存</el-button>
+				</template>
+			</el-dialog>
 		</div>
 	</div>
 </template>
@@ -89,6 +122,7 @@ import { ElMessageBox, ElMessage } from 'element-plus';
 import request from '/@/utils/request';
 import { useUserInfo } from '/@/stores/userInfo';
 import { storeToRefs } from 'pinia';
+import { downloadPdf, downloadExcel } from '/@/utils/download';
 
 const stores = useUserInfo();
 const { userInfos } = storeToRefs(stores);
@@ -102,10 +136,10 @@ const { userInfos } = storeToRefs(stores);
             total: 0,
             loading: false,
             param: {
-                search: '',
-                search1: '', // 依然作为开始时间
-                endTime: '', // 新增：作为结束时间
-                search2: '',
+                username: '',
+                startTime: '',
+                endTime: '',
+                label: '',
                 pageNum: 1,
                 pageSize: 10,
             },
@@ -116,15 +150,14 @@ const { userInfos } = storeToRefs(stores);
         state.tableData.loading = true;
 
         if (userInfos.value.userName !== 'admin') {
-            state.tableData.param.search = userInfos.value.userName;
+            state.tableData.param.username = userInfos.value.userName;
         }
 
-        // 同步日期范围到请求参数
         if (searchTime.value && searchTime.value.length === 2) {
-            state.tableData.param.search1 = searchTime.value[0]; // 开始时间
-            state.tableData.param.endTime = searchTime.value[1]; // 结束时间
+            state.tableData.param.startTime = searchTime.value[0];
+            state.tableData.param.endTime = searchTime.value[1];
         } else {
-            state.tableData.param.search1 = '';
+            state.tableData.param.startTime = '';
             state.tableData.param.endTime = '';
         }
 
@@ -147,6 +180,7 @@ const { userInfos } = storeToRefs(stores);
 				setTimeout(() => {
 					state.tableData.loading = false;
 				}, 300);
+				checkFavoriteStatus();
 			} else {
 				ElMessage({
 					type: 'error',
@@ -160,10 +194,10 @@ const { userInfos } = storeToRefs(stores);
 };
 
 const resetSearch = () => {
-    searchTime.value = []; // 修改这里：将 '' 改为 []
-    state.tableData.param.search1 = '';
-    state.tableData.param.endTime = ''; // 如果你按前面的建议加了 endTime 的话
-    state.tableData.param.search2 = '';
+    searchTime.value = [];
+    state.tableData.param.startTime = '';
+    state.tableData.param.endTime = '';
+    state.tableData.param.label = '';
     getTableData();
 };
 
@@ -190,6 +224,18 @@ const transformData = (originalData: any, confidences: any[], labels: any[]) => 
 	};
 };
 
+const onExportPdf = (row: any) => {
+	downloadPdf('img', row.id);
+};
+
+const onExportExcel = () => {
+	const params: Record<string, string> = {};
+	if (state.tableData.param.username) params.username = state.tableData.param.username;
+	if (state.tableData.param.startTime) params.startTime = state.tableData.param.startTime;
+	if (state.tableData.param.endTime) params.endTime = state.tableData.param.endTime;
+	downloadExcel('img', params);
+};
+
 const onRowDel = (row: any) => {
 	ElMessageBox.confirm('此操作将永久删除该信息，是否继续?', '提示', {
 		confirmButtonText: '确认',
@@ -214,6 +260,59 @@ const onHandleSizeChange = (val: number) => {
 const onHandleCurrentChange = (val: number) => {
 	state.tableData.param.pageNum = val;
 	getTableData();
+};
+
+// ========== 收藏功能 ==========
+const favDialogVisible = ref(false);
+const favFolders = ref<any[]>([]);
+const favForm = ref({ recordId: 0, folderId: null as number | null, remark: '', tags: '', priority: 'NORMAL' });
+let currentFavoriteId: number | null = null;
+
+const getFolders = () => {
+	request.get('/api/favorite/folders').then(res => {
+		if (res.code == 0) favFolders.value = res.data;
+	});
+};
+
+const checkFavoriteStatus = () => {
+	const ids = state.tableData.data.map((item: any) => item.id);
+	if (ids.length === 0) return;
+	request.get('/api/favorite/batchCheck', { params: { recordIds: ids.join(','), recordType: 'IMG' } }).then(res => {
+		if (res.code == 0) {
+			state.tableData.data.forEach((item: any) => {
+				const fav = res.data[item.id];
+				item._favorited = !!fav;
+				item._favoriteId = fav ? fav.id : null;
+			});
+		}
+	});
+};
+
+const onToggleFavorite = (row: any) => {
+	if (row._favorited) {
+		request.delete('/api/favorite/' + row._favoriteId).then(res => {
+			if (res.code == 0) {
+				row._favorited = false;
+				row._favoriteId = null;
+				ElMessage.success('已取消收藏');
+			}
+		});
+	} else {
+		favForm.value = { recordId: row.id, folderId: null, remark: '', tags: '', priority: 'NORMAL' };
+		currentFavoriteId = null;
+		getFolders();
+		favDialogVisible.value = true;
+	}
+};
+
+const onSaveFavorite = () => {
+	request.post('/api/favorite', { ...favForm.value, recordType: 'IMG' }).then(res => {
+		if (res.code == 0) {
+			ElMessage.success('收藏成功');
+			favDialogVisible.value = false;
+			getTableData();
+		}
+	});
 };
 
 onMounted(() => {

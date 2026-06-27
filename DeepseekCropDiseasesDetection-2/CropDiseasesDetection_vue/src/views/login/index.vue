@@ -205,7 +205,7 @@ const submitForgotPassword = () => {
 		if (forgotSubmitting.value) return;
 		forgotSubmitting.value = true;
 		try {
-			const updateRes = await request.post('/api/user/resetPassword', {
+			const updateRes = await request.put('/api/user/password', {
 				username: forgotForm.username,
 				password: forgotForm.password,
 			});
